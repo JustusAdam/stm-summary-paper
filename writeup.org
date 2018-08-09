@@ -1,0 +1,49 @@
+
+
+
+STM is a good fit, particularly in Haskell. STM is combined with the type system
+so that accessing the memory locations is explicit. Thus only relevant memory
+locations are tracked by the STM runtime, which removes a common problem of
+overly pessimistic barriers placed by stm compilers. The type system ensures
+that STM protected locations are neither created nor accessed outside of
+transactions. Thus the programmer cannot forget to protect an access, a common
+problem when using manual stm. Similarly the immutable nature of the language
+ensures no mutations are performed on the data protected by the stm, instead
+transactions create new data that are substituted for the old values.
+
+Another common problem in stm implementations is that it cannot be guaranteed
+that the programmer does not access non-protected mutable state inside a
+transaction, potentially leading to inconsistent system state. With a type
+system supporting monads, such as Haskell or Idris this can be dealt with. The
+type for mutating variables =IO= and the type for stm transactions =STM= are
+incompatible types. Therefore functions of type =IO= cannot be called inside an
+stm transaction.
+
+
+Working with the library itself is only a small burden for programmers already
+familiar with standard concurrency primitives in Haskell, as the API for both is
+virtually identical.
+
+Similar to other concurrent programming strategies its not the be all end all,
+but the right tool for certain jobs.
+
+STM particularly suffers in large transactions or with highly contended memory.
+However with the latter virtually all concurrent programming techniques suffer.
+STM allows a programmer so easily express algorithms with complex invariants and
+dependencies between memory location and execute them in a safe manner. However
+it will not automatically solve the issue of proper data distribution,
+partitioning and granularity. These still are the main difficulty when
+programming concurrent systems.
+
+
+STM is much more robust than locks, but it is not compatible with other non-stm
+state mutations or IO. It is easier to program, as STM protected memory
+/composes/ but it cannot be trivially combined with IO.
+
+STM has certainly found its place in the Haskell ecosystem. The Haskell package
+index /Stackage/ currently lists it as a dependency for 691 packages, including
+the language AGDA, the build tools =Cabal= and =stack=, the bittorrent client
+conjure, a library for erlang like distributed programming called cloud Haskell
+and the webframeworks =snap= and =yesod=. And these are exclusively open source
+packages, the amount of private, proprietary open-source packages may be much
+higher.

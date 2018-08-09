@@ -1,0 +1,148 @@
+* Papers
+
+** STM
+
+*** Software Transactional Memory (N Shavit and D Touitou)
+
+    STM introduction paper.
+
+*** Software Transactional Memory: Why is it only a research toy? (Cascaval et al.)
+
+    STM is bad.
+
+*** Why STM can be more than a research toy (Dragojevic et al.)
+
+    Or maybe not?
+
+*** Composable memory transactions (Harris et al)
+
+    Composition of STM computations, introduction of /blocking/ and /choice/.
+
+*** Lock Free Data Structures Using STM in Haskell
+
+    https://link.springer.com/chapter/10.1007%2F11737414_6
+
+*** A High-Level Implementation of Composable Memory Transactions in Concurrent Haskell
+
+    https://link.springer.com/chapter/10.1007/11964681_8
+
+    Alternative STM implementation in Haskell using only MVar technology.
+
+*** [unlikely to be useful] Software transactional memory for dynamic-sized data structures
+
+    https://dl.acm.org/citation.cfm?id=872048
+
+    Different, less strong but more opimized? STM implementation supporting
+    complex data structures (example is RB-tree).
+
+*** Lightweight recoverable virtual memory
+
+    https://dl.acm.org/citation.cfm?id=174615
+
+    Recoverable virtual memory. Virtual memory regions with transactional
+    guarantees. Transactional properties are configurable.
+
+*** Language support for lightweight transactions
+
+    https://dl.acm.org/citation.cfm?id=949340
+
+    Sounds like another STM implementation.
+
+*** Transactional Monitors for Concurrent Objects
+
+    https://link.springer.com/chapter/10.1007/978-3-540-24851-4_24
+
+    Sounds like STM in Java. But they call it differently, should be interesting.
+
+*** Transactional memory with data invariants
+
+    https://www.microsoft.com/en-us/research/publication/transactional-memory-data-invariants/
+
+    Add (efficient) invariant checking to STM.
+
+*** Polymorphic Contention Management
+
+    https://link.springer.com/chapter/10.1007%2F11561927_23
+
+** Hybrid Systems
+
+*** Architectural Support for Software Transactional Memory
+
+    https://ieeexplore.ieee.org/abstract/document/4041846/
+
+*** Hybrid transactional memory
+
+    https://dl.acm.org/citation.cfm?id=1123003
+
+** HTM
+
+
+*** Transactional Memory: Architectural Support for Lock-Free Data Structures (Maurice Herlihy and J. Eliot B. Moss)
+
+    HTM introduction paper
+
+    Shows how HTM can be implemented in therms of the Cache-Coherence protocol.
+
+    Also shows how it relates to lock free data structures in general.
+
+*** Evaluation of AMD's advanced synchronization facility within a complete transactional memory stack (Christie et al.)
+
+    Kind of in between HTM and STM, uses an AMD instruction extension to
+    implement TM with a software fallback if limitations are hit. Aims to make
+    (S)TM perform better.
+
+*** Evaluation of Blue Gene/Q hardware support for transactional memories (Wang et al.)
+
+    They implemented TM with a HTM thing and evaluated how it performs (for
+    large programs?)
+
+*** Performance Evaluation of Intel transactional synchronization extensions for high-performance computing (Yoo et al.)
+
+    Intel TSX came out, which, as I understand it sounds a bit like hardware lock
+    elision. CPU decides whether a lock is necessary in critical sections.
+
+    They look at how that performs on some real world programs. And how easy
+    they found it to apply it.
+
+** SGX???
+
+*** Strong and efficient cache side-channel protection using hardware transactional memory (Gruss et al.)
+
+*** T-SGX: Eradicating controlled-channel attacks against enclave programs (Shih et al.)
+
+** TM unsorted
+
+*** Programming with transactional coherence and consistency (TCC)
+
+    https://dl.acm.org/citation.cfm?id=1024395
+
+    Make programs completely transactional. Offers some extra constructor for
+    loops and forking. Apparently performance can be recovered with optimisations.
+
+** Misc other systems
+
+*** Transactional lock-free execution of lock-based programs
+
+    https://dl.acm.org/citation.cfm?id=605399
+
+    Automatic lock removal. (HLE?)
+
+** Misc Background
+
+*** Disjoint-access-parallel implementations of strong shared memory primitives (Amos Israeli & Lihu Rappoport)
+
+    https://dl.acm.org/citation.cfm?id=198079
+
+    Atomic shared memory operations and their implementation. /Compare and swap/
+    and the /Load Linked/ and /Store Conditional/ pair.
+
+*** Concurrent Haskell
+
+    https://pdfs.semanticscholar.org/3932/82a35e9da23776052e0adebc959b9091b2ad.pdf
+
+    MVars and so on.
+* Content Notes
+
+STM removes the pitfalls from parallel programming, such as deadlocks, however
+due to large overhead it does not make it trivial. Algorithmic complexity has to
+be considered.

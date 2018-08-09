@@ -1,0 +1,31 @@
+\section{Semantics of Transactional Memory}
+
+\label{sec:stm-semantics}
+
+Within a transaction every read to a shared memory location is recorded and
+writes are performed tentatively, for instance to a local cache, until the
+transaction commits. Upon commit all writes become visible atomically to other
+threads. During the commit phase a thread ensures that the reads it performed
+before are still valid, meaning it saw a consistent, unmodified view of the
+memory. If a concurrent transaction committed in the meantime and modified a
+memory location read by the thread, the transaction is aborted and started anew.
+Conversely a transaction will only ever abort if a memory modification has taken
+place. Memory modifications can only ever take place if a transaction has
+committed, meaning that even though one transaction may have to be aborted, the
+system as a whole has still made progress because some other transaction
+finished.
+
+This guarantees deadlock freedom and liveness for transactional systems.
+Starvation however may still occur, if a short running transaction repeatedly
+forces longer running transactions to abort.
+
+Side effects are a particularly difficult problem in memory transactions. Since
+a transaction may be aborted multiple times and re-run. Any side effects such as
+I/O will be executed again and possibly lead to different results. Similarly
+writes to shared memory locations not protected by the transactional memory
+system may lead to information leakage out of the transaction and inconsistent
+system states.
+
+Therefore both manipulation of non protected shared memory and I/O should not be
+used in transactions, though very few systems enforce this. An exception being
+the Haskell STM library, which disallows non-stm side effects via the type system.

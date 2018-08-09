@@ -1,0 +1,48 @@
+\section{Introduction}
+
+\label{sec:introduction}
+
+% Transactional memory is a much debated solution to dealing with the complexity
+% of parallel and concurrent programs. It offers perhaps the most convenient
+% interface for the programmer where code may be written in a style with hardly
+% any deviation. Unlike lock based approaches a transactional program cannot
+% deadlock and depending on the implementation also offers liveness guarantees.
+% However this comes at a cost. To enable transactions an underlying system is
+% needed which takes care of the bookkeeping necessary to perform transactions
+% atomically.
+
+Implementing concurrent programs correctly is a notoriously difficult task.
+Simple lock based techniques easily result in deadlocks, performance loss due to
+overly conservative locking, or inadvertent concurrent modification if a lock
+was not acquired. Often the complexity of using locks cannot be hidden away when
+more than one shared object is to be used together. Thus every use site of the
+concurrent data structures has the potential for the above mentioned errors,
+requiring intimate knowledge of the precise locking semantics of each structure
+in order to be used correctly. It is fair to say that, in general, lock based
+data structures and systems do not compose well and are not modularisable.
+
+To alleviate this burden from the programmer a system based on the transactional
+semantics from databases was proposed by \textbf{Cite original TM
+  paper}~\cite{tm}.
+% Perhaps go into more detail here
+Leveraging hardware facilities to group memory accesses into
+\emph{transactions}. Each transaction proceeds invisible to any other concurrent
+thread. Once it finishes it is verified that the thread saw a consistent view of
+the memory, meaning no other thread modified it in the meantime, and then all
+writes are applied atomically. If the verification fails the entire transaction
+is aborted and started anew, all modifications are discarded.
+
+Transactional systems are immune to many of the bugs so prevalent in lock based
+systems. Deadlocks are ruled out and the system is guaranteed to always make
+progress. Section~\ref{sec:stm-semantics} details more of the semantics of
+transactions and how they prevent deadlocks. Composing concurrent structures is
+easier as well by using them in the same transaction.
+
+The hardware based approach by \emph{insert authors} however falls short in two
+respects \begin{enumerate*}\item the system is not portable and \item
+  transaction size is bounded by cache size
+% TODO make sure this is actually correct
+\end{enumerate*}. To address this Shavit and Touitou developed the
+first version of a transactional system implemented solely in
+software~\cite{stm}. Since then various improvements to the system have been
+developed, improving safety, efficiency and generality.

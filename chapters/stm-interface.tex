@@ -1,0 +1,28 @@
+\section{STM interfaces}
+
+\label{sec:stm-interfaces}
+
+In addition to the calls to start and commit an STM transaction, using the
+transaction also requires changes to be made to the memory accesses themselves.
+Depending on the implementation different addition steps have to be executed
+when accessing shared memory. As an example in the general STM described in
+\cite{stm-research-toy} reads incur an additional metadata write to the read
+set, as well as a validation.
+
+Generating the necessary code can either be done automatically by a special stm
+compiler or, alternatively, manually Using the compiler based solution often
+results in a more conservative approach with redundant barriers for memory
+locations only available to the local thread. The manual approach can be
+optimised and have less overhead but carries a similar risk as lock based
+approaches, where a skilled programmer is required with intimate knowledge of
+the system, the data sources and their interactions. One potential pitfall for
+instance is that not only data being \emph{written} by the transaction have to
+be protected, but also data which is only \emph{read} but could be modified by a
+concurrent thread. This becomes harder to track as the system gets larger.
+
+One elegant way to avoid this problem is the approach taken by the Haskell STM
+library, where transactional variables have to explicitly created and can only
+be accessed inside transactions. A special \texttt{STM} monad is used to
+describe actions which have to take place in transactions. Such actions can only
+be run using the \texttt{atomically} function which wraps the action in a
+\texttt{START_TRANSACTION} and \texttt{END_TRANSACTION} call.

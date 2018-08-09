@@ -1,0 +1,48 @@
+\documentclass[11pt,a4paper,sigconf]{acmart}
+
+\usepackage{booktabs} % For formal tables
+\usepackage[utf8]{inputenc}
+\usepackage{listings}
+\usepackage[inline]{enumitem}
+\usepackage{FiraMono}
+
+% Copyright
+%\setcopyright{none}
+%\setcopyright{acmcopyright}
+%\setcopyright{acmlicensed}
+\setcopyright{rightsretained}
+%\setcopyright{usgov}
+%\setcopyright{usgovmixed}
+%\setcopyright{cagov}
+%\setcopyright{cagovmixed}
+
+\begin{document}
+\title{In search of real world applications for Software Transactional Memory}
+% \subtitle{Using Freedom to Great Effect}
+
+\author{Justus Adam}
+\affiliation{Technische Universiät Dresden}
+\email{justus.adam@tu-dresden.de}
+
+
+\begin{abstract}
+  Transactional memory provides a care-free and succinct way of writing parallel
+  applications without the dangers of deadlocks. Whereas software
+  implementations offer greater flexibility and portability than their hardware
+  counterparts, they are also infamously slow.
+
+  Int his work I want to first evaluate Software Transactional Memory (STM) with
+  regards to features and improvements in efficiency in the latest research.
+  From this I will lead into a survey of realised and potential application
+  domains for STM.
+\end{abstract}
+
+\maketitle
+
+\input{chapters/introduction}
+\input{chapters/stm-semantics}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{bibliography}
+
+\end{document}
