@@ -1,0 +1,72 @@
+\section{Haskell}
+
+\label{sec:haskell}
+
+In Haskell supports first class functions. Function values are not treated
+specially from data structures. The syntax for type annotations is also the same
+for both. Named values are annotated with the \texttt{::} operator, followed by
+the type, for instance \texttt{i :: Int}. In the case of a function the
+arguments and return type are separated by an arrow \texttt{->}. A function
+taking an integer and a string argument and returning a boolean would thus be
+\texttt{test :: Int -> String -> Bool}.
+
+In the Haskell language data is immutable by default. Regular data structures
+cannot be modified, instead new data is allocated. In addition side effects are
+strictly controlled. Functions are either pure or must explicitly declare the
+side effects they perform. Pure functions have the property that for the same
+inputs they always produce the same outputs. They cannot modify any external
+state, perform I/O or read mutable variables. As an example a function
+\texttt{randomInt :: () -> Int} producing a random integer would be impossible
+in Haskell.
+
+The return type of a function shows the side effects it performs. For instance
+\texttt{readFile :: FilePath -> IO String} does I/O side effect by opening and
+reading a file, and then returns a \texttt{String}. There are also functions
+which only perform side effects. They return \texttt{()}, the Haskell equivalent
+of \texttt{void}. An example would be \texttt{writeFile :: FilePath -> String ->
+  IO ()}. The \texttt{IO} ``wrapper'' type around the string cannot be removed.
+However Haskell provides the \texttt{do} notation to sequence many such
+computations into larger ones. Inside the \texttt{do} block values produced by
+I/O can be manipulated. However the \texttt{IO} type propagates to the return
+type of the computation. As an example see Figure~\ref{fig:simple-do}.
+
+
+\begin{figure}
+  \begin{lstlisting}
+cCompile :: IO ()
+cCompile = do
+  header <- readFile "main.h"
+  code <- readFile "main.c"
+  let object = runCompiler header code
+  writeFile "main.o" object
+  return ()
+  \end{lstlisting}
+  \caption{Example for the \texttt{do} notation}
+  \label{fig:simple-do}
+\end{figure}
+
+
+The only way in Haskell to perform the actual effects of an \texttt{IO}
+computation is to use it in the \texttt{main} function. Because effect types,
+such as \texttt{IO}, propagate automatically, we know that a pure function can
+never perform I/O.
+
+In Haskell raw memory manipulations are not supported. Instead there are special
+data structures which represent mutable memory cells, called \texttt{IORef}.
+Instead of primitive, syntactic constructs, there is a suite of functions to
+manipulate them, shown in Figure~\ref{fig:io-ref}.
+
+\begin{figure}
+  \begin{lstlisting}
+data IORef = {- implementation hidden -}
+newIORef :: a -> IO (IORef a)
+readIORef :: IORef a -> IO a
+putIORef :: IORef a -> a -> IO ()
+  \end{lstlisting}
+  \caption{Mutable memory cell in Haskell}
+  \label{fig:io-ref}
+\end{figure}
+
+These manipulations are also considered side effects, as can be seen from the
+\texttt{IO} return type. As a result they also can only be used in an
+\texttt{IO} context.

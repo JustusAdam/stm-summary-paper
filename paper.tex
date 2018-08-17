@@ -16,8 +16,16 @@
 %\setcopyright{cagov}
 %\setcopyright{cagovmixed}
 
+\lstset{%
+  language=Haskell,
+  basicstyle=\small\ttfamily,
+%  literate=
+%  {->}{{$\rightarrow$}}1 {=>}{{$\Rightarrow$}}1 {>>=}{{$\bindOp$}}2
+%  {>>}{{$\bindIgnOp$}}1 {<-}{{$\leftarrow$}}1
+}
+
 \begin{document}
-\title{In search of real world applications for Software Transactional Memory}
+\title{Finding a home for Software Transactional Memory}
 % \subtitle{Using Freedom to Great Effect}
 
 \author{Justus Adam}
@@ -26,21 +34,28 @@
 
 
 \begin{abstract}
-  Transactional memory provides a care-free and succinct way of writing parallel
-  applications without the dangers of deadlocks. Whereas software
-  implementations offer greater flexibility and portability than their hardware
-  counterparts, they are also infamously slow.
+  Software Transactional Memory is widely known to be a safe and easy but also
+  slow abtraction for writing concurrent programs. Some go so far as to call
+  it a ``research toy''\cite{research-toy}.
 
-  Int his work I want to first evaluate Software Transactional Memory (STM) with
-  regards to features and improvements in efficiency in the latest research.
-  From this I will lead into a survey of realised and potential application
-  domains for STM.
+  In truth STM really has not seen much adoption by the mainstream, with one
+  exception. Haskell, the most popular functional programming language, supports
+  STM and here it has seen widespread use by major projects and frameworks.
+
+  In this work I explore why STM integrates well into the Haskell ecosystem and
+  how some of the common issues when using STM are remedied by Haskells powerful
+  type system and design patterns.
 \end{abstract}
 
 \maketitle
 
 \input{chapters/introduction}
-\input{chapters/stm-semantics}
+\input{chapters/haskell}
+\input{chapters/stm-library}
+\input{chapters/explicit-implicit}
+\input{chapters/side-effects}
+\input{chapters/related-work}
+\input{chapters/conclusion}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{bibliography}

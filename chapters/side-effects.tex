@@ -1,0 +1,45 @@
+\section{Side Effects}
+
+\label{sec:side-effects}
+
+In order for an STM system to function properly transactions must be free of
+side effects. Side effects are actions that manipulate external state. This
+includes reading and writing files but also manipulations of global memory
+locations. The problem is that the semantics of side effects in transactions are
+unspecified and it is easy to use them unsafely. When a transaction is retried
+its side effects are executed again. Furthermore there is no guarantee
+\emph{which} of its side effects are executed again. The transaction may only
+run partially and then abort, executing only a part of the side effects. They
+also interleave with the side effects from concurrent transactions. As because
+of this programmers are generally discouraged from using side effects in
+transactions.
+
+Detecting the use of side effects is difficult. It is possible to detect the use
+of syscalls at runtime. Systems which do so will usually abort with an error to
+inform the user. Much more complicated is the detection of memory modifications.
+For efficiencies sake it is necessary to allow raw memory modifications in
+transactions. However writes must be restricted to memory created in the
+transaction. Furthermore this memory must not have been written out to a
+protected location. The usual tactic of STM compilers is to use escape analysis,
+which is not a trivial problem.
+
+Haskell deals with this problem differently. The type system and the standard
+library in Haskell make side effects explicit (see Section~\ref{sec:haskell}).
+Memory manipulations (see Figure~\ref{fig:io-ref}) and OS interactions (see
+Section~\ref{sec:haskell}) have the \texttt{IO} type. This type is incompatible
+with the type of memory transactions \texttt{STM} (see Figure~\ref{fig:tvar}).
+Both of these types are effect types. By default effect types cannot be
+interleaved or embedded. An explicit function must be provided to embed one
+effect in another. \texttt{STM} effect can be embedded into \texttt{IO} effects
+using \texttt{atomically} (compare Figure~\ref{fig:atomically}). However there
+is no such function for the other direction. \texttt{embedIO :: IO a -> STM a}
+would be an example for such a function. However authors of the \texttt{stm}
+library deliberately do not include such a function. Furthermore since both the
+implementation of \texttt{IO} as well as \texttt{STM} are hidden, the user
+cannot simply define such a function themselves.
+
+As a result the compiler will detect and report the use of \texttt{IO}
+functions, and therefore the use of side effects, in an stm transaction. This
+prevents the accidental use of side effect performing functions. Haskell is in
+the fortunate position to already have explicit side effects which makes this
+approach possible int he first place.

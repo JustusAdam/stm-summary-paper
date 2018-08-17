@@ -1,3 +1,37 @@
 \section{Related Work}
 
+\label{sec:related-work}
+
+While STM has not caught on much outside of Haskell, other concurrency
+primitives have.
+
+\subsection{HLE}
+
+Hardware lock elision, or HLE is a hardware mechanism that speeds up lock based
+concurrent programs. The idea is rather similar to TM. A lock based
+implementation is executed without acquiring the lock and recording the writes
+in the cache. When the lock would be released a check for conflicts is performed
+and the writes committed. This only works if there are no side effects such as
+IO in the lock protected sections.
+
+The problems are similar to TM, in that it needs hardware capabilities, and that
+it is limited by the size of the cache.
+
 \subsection{Message passing}
+
+Message passing, and by extension the \emph{actor model} is most up-and-coming
+concurrency model. This is often coupled with lightweight threads that are
+scheduled by a runtime. Threads only interact with private state. Between them
+there are channels through which data can be sent. The first language to use
+this model extensively was Erlang, nowadays the standard library for Go and Rust
+both contain an implementation of message passing.
+
+The advantage of MP is that these principles are easy to understand and they
+scale well. Some implementations require messages to be serializable, an thus
+individual nodes can be moved to other processes or even machines.
+
+A common problem of MP is the serialization overhead of messages. This can be
+avoided by sending just pointers when communicating between threads. However
+care must be taken that the access of the sending thread is revoked. Rust has a
+rather elegant solution here where it ownership type system ensures that no two
+threads access the same data concurrently.

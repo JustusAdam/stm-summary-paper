@@ -1,0 +1,80 @@
+\section{The Haskell STM Library}
+
+\label{sec:library}
+
+In Haskell STM is realized via a library called \texttt{stm}. Whereas the API is
+defined in the library the core of Haskells STM system is implemented in its
+runtime, in C.
+
+The library is designed around explicit transactional data structures. The
+simplest of these is called \texttt{TVar}. The interface for interacting with a
+tvar can be seen in Figure~\ref{fig:tvar}. It is remarkably similar to the
+\texttt{IORef} from the previous section. The entire library mimics preexisting
+Haskell primitives, such as the transactional lock \texttt{TMVar}, which is
+similar to an \texttt{MVar}. Because the interface is so similar every Haskell
+programmer should have little difficulty using it.
+
+The second important part of the library is the transaction type \texttt{STM}.
+\texttt{STM} is an effect type, similar to \texttt{IO}. It is used to build up
+transactions from primitive operations using the \texttt{do} notation. It
+combines both primitives, as well as other fragments of transactions together.
+Thus libraries can define only partial transactions which the user can combine
+later with their own logic using \texttt{do}.
+
+To execute the transaction the \texttt{atomically} function is provided, see
+also Figure~\ref{fig:atomically}. It takes a description of a transaction
+(\texttt{STM a}) and executes it. The \texttt{atomically} function both
+initializes the transaction as well as verifies it. See more in
+Section\ref{sec:explicit-implicit}.
+
+\begin{figure}
+  \begin{lstlisting}
+data TVar = {- implementation hidden -}
+newTVar :: a -> STM (TVar a)
+readTVar :: TVar a -> STM a
+putTVar :: TVar a -> a -> STM ()
+  \end{lstlisting}
+  \caption{STM memory cell in Haskell}
+  \label{fig:tvar}
+\end{figure}
+
+The Haskell \texttt{stm} library exports two additional primitives.
+\texttt{retry} and \texttt{orElse}. These are typically not part of STM and were
+first introduced in \cite{composable-transactions}. \texttt{retry} is a way for
+the user to demand the transaction be aborted and attempted again. This function
+allows the programmer to require more complex conditions to hold in the system.
+Take for instance a function which must read two elements from a shared buffer.
+The implementation in Figure~\ref{fig:dequeue-two} uses retry if any of the
+buffers are empty. When a \texttt{retry} is called the STM implementation rolls
+back the transaction and then waits for a change to occur on any of the
+locations touched until \texttt{retry} as called. This avoids executing the
+computation again when the conditions have not changed.
+
+\begin{figure}
+  \begin{lstlisting}
+dequeue :: TMVar [a] -> STM a
+dequeue v = do
+  l <- takeTMVar v
+  case l of
+    [] -> retry
+    (a:as) -> do
+      putTMVar v as
+      return a
+
+dequeueTwo :: TMVar [a] -> STM (a,a)
+dequeueTwo v = do
+  a1 <- dequeue v
+  a2 <- dequeue v
+  return (a1, a2)
+  \end{lstlisting}
+  \caption{Dequeuing a buffer}
+  \label{fig:dequeue-two}
+\end{figure}
+
+The second primitive added is the \texttt{orElse} function. \texttt{orElse}
+takes two STM computation, tries the first and if it \texttt{retry}s it
+executes the second. If we understand \texttt{retry} as a blocking transaction,
+because it waits for change, then \texttt{orElse} is the choice of two blocking
+transactions. By using \texttt{orElse} we can wait on two different conditions
+for either one to come true. The authors of the original paper note the
+similarity to the unix \texttt{select} system call.

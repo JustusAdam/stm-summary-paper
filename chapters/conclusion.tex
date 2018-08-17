@@ -1,0 +1,15 @@
+\section{Conclusion}
+
+\label{sec:conclusion}
+
+Languages such as Haskell are a better fit for the use of STM. Some of the
+common problems with STM do not occur in Haskell. Immutable data and explicit
+memory manipulation remove the need for complicated privatization and overly
+conservative protection. Furthermore side effects in transactions are
+categorically forbidden via the type system.
+
+STM does not solve the concurrency problem completely. Even in Haskell there are
+other primitives available, such as message passing and a lock-like
+data structure. Both of which are also widely used. However STM is perhaps
+currently the safest, easiest and most reliable system to express computations
+with complex invariants.

@@ -36,14 +36,27 @@ partitioning and granularity. These still are the main difficulty when
 programming concurrent systems.
 
 
-STM is much more robust than locks, but it is not compatible with other non-stm
-state mutations or IO. It is easier to program, as STM protected memory
-/composes/ but it cannot be trivially combined with IO.
+STM is much more robust than locks. Unfortunately it is not compatible with
+other side effects. All side effects performed in a transaction must be
+reversed if the transaction aborts, otherwise they may leave the system in an
+inconsistent state. STM implementations however only record protected memory
+accesses. Other side effects, like IO are not covered by the system.
+
 
 STM has certainly found its place in the Haskell ecosystem. The Haskell package
 index /Stackage/ currently lists it as a dependency for 691 packages, including
 the language AGDA, the build tools =Cabal= and =stack=, the bittorrent client
 conjure, a library for erlang like distributed programming called cloud Haskell
 and the webframeworks =snap= and =yesod=. And these are exclusively open source
-packages, the amount of private, proprietary open-source packages may be much
-higher.
+packages, the amount of private or proprietary packages may be much higher.
+
+
+* Introduction
+
+* Explicit vs implicit
+
+* Side effects
+
+* Efficiency
+
+* Conclusion
