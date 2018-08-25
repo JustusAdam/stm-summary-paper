@@ -1,0 +1,107 @@
+\section{Software Transactional Memory}
+
+\label{sec:stm}
+
+Transactional memory is a tool to do concurrent programming without locks. Locks
+are notoriously easy to program incorrectly. They also do not compose well.
+When multiple lock protected data structures are used simultaneously, the order
+in which the their locks are acquired is important. When two sections of code
+acquire the same locks in a different order it can easily lead to a deadlock.
+
+Transactional memory uses no locks. Instead it expands the idea of atomic
+instructions to whole sections of code. Sequences of memory reads and writes are
+grouped into \emph{transactions}. When a transaction runs, none of its writes
+can be seen by the other threads. The transaction finishes by attempting a
+\emph{commit}. This commit either \emph{succeeds}, making \emph{all} of the
+transactions writes visible to the other threads atomically, or \emph{aborts},
+discarding all writes and restarting. Thus to all other threads it seem like the
+transaction either happened instantly or it never took place at all. Whether a
+transaction succeeds or aborts depends on whether the memory it has \emph{read}
+while running has changed in the meantime. In this case the transaction may have
+read an inconsistent view of the heap. It therefore must be considered unsafe
+and restarted.
+
+Importantly transactional memory never stalls a system, like a deadlock would.
+So long as there is no conflict each transaction can proceed freely. Upon
+detecting a conflict is must abort. However conflicts only arise when memory
+changes\footnote{This is not strictly true for all implementations. Some choose
+  to detect conflicts with other concurrent, non-committed transactions. Then
+  the aborting thread starts helping the other transaction. While it is a
+  subtile difference, the outcome is the same. Aborts only ever happen to the
+  benefit of another transaction and thus the whole system makes progress.}, and
+memory only changes when transactions commit. Therefore in case of an abort,
+another transaction must have committed in the meantime, which means the system
+as a whole \emph{must} have made progress.
+
+There are two major types of transactional memory.
+\begin{description}
+\item[HTM] \textbf{H}ardware \textbf{T}ransactional \textbf{M}emory uses
+  hardware to implement transactions.
+\item[STM] \textbf{S}oftware \textbf{T}ransactional \textbf{M}emory implements
+  transactions in software.
+\end{description}
+
+HTM is the older system, first introduced by
+\citeauthor{tm-origins}~\cite{tm-origins}. Its major advantage is that it is
+fast, because hardware is fast. STM is a little younger, developed by
+\citeauthor{stm}~\cite{stm}. Its major advantage over HTM is that it is
+portable. Not only do some systems lack the support for HTM entirely but there
+can be subtile differences between different hardware. Transactional memory
+always involves some kind of bookkeeping. Because HTM uses hardware for this
+bookkeeping, its maximum transaction \emph{size} (or \emph{length}) is limited
+by hardware capacity. A program using HTM that runs fine on one system may
+suddenly error on another due to a transaction that is too large. STM does not
+have this limitation and can be ported to other hardware without such subtile
+bugs but has larger overhead in general, making it slower.
+
+The inner workings can be quite different between transactional memory
+implementations. For the sake of brevity I will not go too deep into these differences,
+but instead focus on the commonalities that are of interest to this paper.
+
+Independent of the concrete algorithm used, transactional memory involves
+bookkeeping that keeps track of both reads and writes
+\begin{description}
+\item[Reads] must be kept track of because at some point each transaction must verify
+that it has seen a consistent view of memory. To do this the locations read must
+be checked for intermediate modification.
+\item[Writes] must be kept track of to allow transactions to be undone.
+  Optimistic strategies write directly and undo them with an undo log in case of
+  an abort. Pessimistic strategies record writes in a write log that is
+  persisted after a successful commit.
+\end{description}
+
+To facilitate this the following basic STM user interface is needed.
+\begin{description}
+\item[START\_TRANSACTION] Initialises the bookkeeping records for the
+  transaction. Return point in case of a retry.
+\item[READ] Read from an STM protected memory location.
+\item[WRITE] Write to an STM protected memory location.
+\item[END\_TRANSACTION] Verifies the transaction and either commits or retries.
+\end{description}
+
+It is crucial that all reads and writes to shared memory are done using
+\texttt{READ} and \texttt{WRITE}. In languages which support raw memory
+manipulations a programmer might forget to use them or be unaware that a certain
+memory location is shared. This causes the transaction to leak, which might put
+the system in an inconsistent state especially when parts of the transactions
+are executed repeatedly due to aborts.
+
+To deal with this problem special STM compilers have been designed, which
+automatically insert \texttt{READ} and \texttt{WRITE} calls in transactions.
+
+There is an ongoing debate~\cite{research-toy,not-research-toy} about how
+feasible STM is for real world applications. The argument can be summed up in
+the following major points.
+
+\begin{description}
+\item[Efficiency] STM in particularly suffers from the additional cost of
+  bookkeeping. This has improved though, due to smarter STM compilers employing
+  escape analysis to recognize private data. By privatizing local data
+  structures some of the overhead can be eliminated.
+\item[Weak atomicity] STM compilers can ensure that accessing shared memory in
+  transactions is done safely, however it cannot guarantee that the shared
+  memory locations are not accessed unprotected from outside the transaction.
+\end{description}
+
+We will revisit these problems starting with Section~\ref{sec:library} to
+see how the Haskell STM library addresses these.

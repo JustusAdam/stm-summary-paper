@@ -2,14 +2,45 @@
 
 \label{sec:conclusion}
 
-Languages such as Haskell are a better fit for the use of STM. Some of the
-common problems with STM do not occur in Haskell. Immutable data and explicit
-memory manipulation remove the need for complicated privatization and overly
-conservative protection. Furthermore side effects in transactions are
-categorically forbidden via the type system.
+STM does not ``fix'' the problem of concurrent data. There are several data
+structures available to share data, in Haskell as in other environments. Atomic
+references, locks and channels are common tools for implementing concurrent
+programs. There is a hierarchy among these tools, both in terms of their
+complexity, overhead and how often the are used.
 
-STM does not solve the concurrency problem completely. Even in Haskell there are
-other primitives available, such as message passing and a lock-like
-data structure. Both of which are also widely used. However STM is perhaps
-currently the safest, easiest and most reliable system to express computations
-with complex invariants.
+At the bottom of the pyramid are the atomic references. Ubiquitously used, high
+performance and simple, but not ``powerful'' with respect to the complexity of
+algorithms it allows to (easily) implement. On step up are locks. A little less
+frequently used, still high performance, with more complicated semantics and
+more ``powerful'' than references. Thirdly there are channels, an intuitive
+abstraction with noticeable overhead. And lastly there is STM, significant
+overhead but also a lot safer and substantially more powerful.
+
+A significant reason we do not see as broad an adoption of STM might simply be
+the nature of many problems. While STM makes complicated problems simpler to
+solve, many problems are simply not that complicated and are easily solved with
+channels or an atomic reference.
+
+When more complex problems arise however Haskell makes it easy to use STM.
+Transitioning from simpler primitives to STM is straight forward, due to the
+similarity between the transactional and non-transactional versions. A
+canonical, high performance STM implementation is readily available, which is
+not the case for most other languages. And Lastly no additional compiler is
+necessary to use STM safely.
+
+Software transactional memory also fits well into the Haskell language and
+ecosystem. More so than in most imperative languages where mutability and raw
+memory manipulations are common. Immutable by default data and explicitly
+mutable transactional cells mean that data is by default safely privatized. At
+the same time it prohibits access to shared data from outside transactions.
+Where other STM implementations simply trust the programmer to do the right
+thing the Haskell type system enforces correct behaviour.
+
+Finally the community using Haskell values safety over efficiency, which may be
+another factor contributing to the popularity of STM.
+
+While other shared data structures are still available, STM occupies its spot
+atop the pyramid. An easy step up whenever simpler primitives becomes
+insufficient for a problem. Such as when expressing reliable, concurrent
+computations and data structures with complex
+invariants~\cite{lock-free-structures-haskell-stm}.

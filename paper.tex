@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper,sigconf]{acmart}
+\documentclass[10pt,a4paper,sigconf]{acmart}
 
 \usepackage{booktabs} % For formal tables
 \usepackage[utf8]{inputenc}
@@ -24,23 +24,28 @@
 %  {>>}{{$\bindIgnOp$}}1 {<-}{{$\leftarrow$}}1
 }
 
+\acmConference[OSR'18]{Influential Operating Systems Research}{August 31,
+  2018}{Dresden, GERMANY}
+
 \begin{document}
-\title{Finding a home for Software Transactional Memory}
+\title{Finding a Home for Software Transactional Memory}
 % \subtitle{Using Freedom to Great Effect}
 
 \author{Justus Adam}
-\affiliation{Technische Universiät Dresden}
+\affiliation{Technische Universität Dresden}
 \email{justus.adam@tu-dresden.de}
 
 
 \begin{abstract}
-  Software Transactional Memory is widely known to be a safe and easy but also
-  slow abtraction for writing concurrent programs. Some go so far as to call
-  it a ``research toy''\cite{research-toy}.
+  Software Transactional Memory is a safe and easy abtraction for writing
+  concurrent programs. But it also has some shortcomings, mainly that it is
+  slow. Some go so far as to call it a ``research toy''\cite{research-toy}.
 
-  In truth STM really has not seen much adoption by the mainstream, with one
-  exception. Haskell, the most popular functional programming language, supports
-  STM and here it has seen widespread use by major projects and frameworks.
+  In truth STM has seen very little adoption by the mainstream, despite two
+  decades of research. But, there is an exception. Haskell, is an industry
+  strength functional programming language and supports STM. Many of the major
+  projects and frameworks written in Haskell use STM directly and some of the
+  most used support libraries use it internally.
 
   In this work I explore why STM integrates well into the Haskell ecosystem and
   how some of the common issues when using STM are remedied by Haskells powerful
@@ -50,6 +55,7 @@
 \maketitle
 
 \input{chapters/introduction}
+\input{chapters/stm}
 \input{chapters/haskell}
 \input{chapters/stm-library}
 \input{chapters/explicit-implicit}

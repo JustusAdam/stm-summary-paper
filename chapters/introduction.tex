@@ -4,68 +4,64 @@
 
 Writing concurrent, and by extension parallel, programs is anecdotally hard.
 Atomic operations make it possible to modify small sections of memory safely.
-However they are insufficient when invariants between memory sections must be
-maintained.
+However they are insufficient when invariants between large or separated memory
+sections must be maintained.
 
-A simple example would be a vector consisting of a buffer of memory to store its
-element and a field for the length ($l$). When a new element is appended it has
-to be written into the buffer at the index $l + 1$, then $l$ has to be
-increased. The two locations, the buffer and the field for $l$ are disjoined
-memory locations with the invariant that $l$ always corresponds to the largest
-readable index. This invariant has to be maintained in a concurrent setting. Two
-concurrent threads may for instance read the same index and subsequently write
-data into the same location. Whichever thread writes second simply overwrites
-the data of the first.
+A simple example would be a vector consisting of a buffer ($b$) of memory to
+store its element and a field ($l$) for the lengthof the vector. When a new
+element is appended it has to be written into the buffer $b[l + 1]$, then $l$
+has to be incremented. The two locations, $b$ and $l$ are separate memory
+locations with the invariant that $l$ always corresponds to the smallest index
+where $b$ no longer contains readable data. This invariant has to be maintained
+in a concurrent setting, where the following scenario is possible. Two
+concurrent threads attempt to perform an append. Both threads read the same
+value for $l$. Both threads write their data to $b[l+1]$, whereby the second
+thread overwrites the value written by the first. Lastly they either both set $l
+= l + 1$, or, worse, execute an atomic increment each, resulting in $l = l + 2$,
+with $l+1$ now being an invalid index containing garbage data.
 
-A common tool to solve this issue are \emph{locks}. When used correctly they
-ensure a certain section of code is never executed by more than one thread at a
-time. However locks are easily used incorrectly. Most systems do not tie the use
-of the data the lock protects to the lock, and thus do not detect when the
-programmer forgets to lock or unlock. When more than one lock is used the system
-can deadlock, where two threads hold a lock the respective other thread needs
-also. In such a case the whole system can halt without any explicit error.
+A tool commonly used to solve this issue are \emph{locks}. When used correctly
+they ensure a certain section of code is never executed by more than one thread
+at a time. However locks are easily used incorrectly. Most systems do not tie
+the use of the data to the lock that protects it. This means they cannot detect
+when the programmer forgets to lock before accessing the data or unlock after it
+goes out of scope. Also when more than one lock is used the system can
+\emph{deadlock}, a state, where two threads hold a lock the respective other
+thread needs also. In such a case the whole system can halt without any explicit
+error.
 
-Transactional memory is a tool to do concurrent programming without locks. It
-expands the atomicity from single instructions to whole sections of code. The
-idea is that memory reads and writes are grouped into \emph{transactions}. When
-a transaction runs, none of its writes can be seen by the other threads. The
-transaction finishes by attempting a \emph{commit}. This commit either
-\emph{succeeds}, making \emph{all} of the transactions writes visible to the
-other threads atomically, or \emph{aborts}, discards all writes and restarts.
-Whether a transaction succeeds or aborts depends on whether the memory it has
-\emph{read} while running has changed in the meantime. In this case the
-transaction may have read an inconsistent view of the heap. We therefore discard
-all writes and restart the transaction from the beginning.
+\citeauthor{tm-origins} proposed a different system~\cite{tm-origins}, based on
+the concept of \emph{transactions}. Transactions are widely used in databases to
+solve a similar problem. It maintains invariants between tables in a database by
+executing a sequence of instructions as if it were a single one. This prevents
+the interleaving of concurrent modifications. \citeauthor{tm-origins} derived from
+this a system for using memory in a transactional way. More detail about this
+follows in Section~\ref{sec:stm}.
 
-Two important properties arise.
+The two most important properties of transactional memory are.
 \begin{enumerate}
 \item No deadlocks, because no locks are used.
-\item \emph{Liveness}. The system only stalls, if a transaction aborts. A
-  transaction only aborts when memory changes. Memory only changes if another
-  transaction commits, therefore the system as a whole \emph{must} have made progress.
+\item \emph{Liveness}. The system \emph{as a whole} always makes progress, even
+  in the presence of conflicts.
 \end{enumerate}
 
-There are two major types of transactional memory.
-\begin{description}
-\item[HTM] \textbf{H}ardware \textbf{T}ransactional \textbf{M}emory uses
-  hardware to implement transactions.
-\item[STM] \textbf{S}oftware \textbf{T}ransactional \textbf{M}emory implements
-  transactions in software.
-\end{description}
-
-HTM is the older system. Its major advantage is that it is fast, because
-hardware is fast. STM is a little younger. As opposed to HTM, it is portable,
-because it requires less hardware support. It also has no limit on the size
-of a transaction. For instance HTM using the cache coherence protocol supports
-only as many reads and writes as there are cache lines for the processor.
-
-Transactional memory makes it much easier to write concurrent programs. Moreover
-it does this with minimal adjustments to the original code.
+Transactional memory makes it much easier to write correct concurrent programs.
+Moreover it does this with minimal adjustments to the original code.
+Relating this back to the vector example from above, if an STM compiler is used,
+the only change to the code for the append routine would be to enclose it in a
+\texttt{BEGIN\_TRANSACTION}, \texttt{END\_TRANSACTION} call.
 
 Despite its advantages, transactional memory is not very widely used, with one
 notable exception: \emph{Haskell}. The package database \emph{Stackage} lists
-the \texttt{stm} library as a dependency for 691 open source Haskell packages.
-Notable among those are the \emph{AGDA} compiler, the build tools \emph{Cabal}
-and \emph{stack} and the webframework \emph{snap}.
+the \texttt{stm} library as a dependency for 692~\cite{stm-as-dep-on-stackage}
+open source Haskell packages\footnote{To put this into perspective, in the same
+  package database the \emph{directory} library for platform agnostic filesystem
+  operations, is listed as dependency for 1906
+  packages~\cite{directory-as-dep-on-stackage}.}. Notable among those are the
+\emph{AGDA} compiler, the build tools \emph{Cabal} and \emph{stack} and the
+webframework \emph{snap}.
 
-I want to try to explain why STM is popular in Haskell, but not anywhere else.
+In this paper I take a look at STM as implemented in Haskell. I highlight how
+this implementation uses the Haskell type system to solve some of the common
+issues of STM. I also show how the uncommon paradigm of immutability in Haskell
+is used to make its STM implementation more efficient.

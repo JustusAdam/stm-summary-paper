@@ -1,76 +1,50 @@
-\section{Explicit and Implicit STM}
+\section{Manual and Automatic STM}
 
 \label{sec:explicit-implicit}
 
-The inner workings can be quite different between STM implementations. Some use
-a logging approach, where changes are recorded but not executed. An example of
-this would be the \texttt{stm} Haskell library. Others use a blocking and help
-approach. A thread $T_1$ that wants to write to a location $l$ that another
-thread $T_2$ has already modified first helps $T_2$ until $T_2$ commits and then
-continues. In either case runtime bookkeeping is necessary to record the
-locations read and the modifications made.
+The problem with manual STM, where the programmer inserts \texttt{READ} and
+\texttt{WRITE} calls, is that these can be forgotten without raising an error.
+Special STM compilers are employed to automate the insertion of \texttt{READ}s
+and \texttt{WRITE}s this is often also necessary to instrument third party
+libraries that are used inside transactions. Since the STM protected accesses
+are much more expensive than regular memory accesses protecting data that is not
+shared should be avoided. The process of data that was shared becoming local to
+the thread is called \emph{privatization}. Identifying which is private is not
+trivial and involves sophisticated escape analysis. As a result STM compilers
+are generally too conservative and protect additional memory that is not shared.
+This further reduces their performance.
 
-The following four actions are the basic stm interface.
+Manual STM can be used to avoid this excess protection. However in such cases it
+is easy to forget protecting actually shared memory, because most languages make
+no type level distinction between protected and unprotected memory. In Haskell
+STM protected memory structures are distinct types. The simplest is a mutable
+memory cell called \texttt{TVar} (see Figure~\ref{fig:tvar}). Its internal
+structure is hidden from the user of the library which prevents any raw
+manipulation of a \texttt{TVar} value. It can only be manipulated via the
+functions provided by the library. These \texttt{readTVar} and \texttt{putTVar}
+functions internally use \texttt{READ} and \texttt{WRITE} to protect the memory.
 
-\begin{description}
-\item[START\_TRANSACTION] Initialises the bookkeeping records for the
-  transaction. Return point in case of an abort.
-\item[READ] Read from an STM protected memory location.
-\item[WRITE] Write to an STM protected memory location.
-\item[END\_TRANSACTION] Verifies the transaction and either commits or retries.
-\end{description}
+No special STM compiler is needed here. The programmer uses STM reads and writes
+explicitly and the restricted library interface ensures that. It also means safe
+privatization. While the \texttt{TVar} is itself mutable the value stored there
+is either immutable or another explicit \texttt{TVar}. Once the value of a
+\texttt{TVar} has been read its members can be accessed without using the costly
+STM protection. If one of the members happens to be mutable (aka a
+\texttt{TVar}) only \emph{that} access is again protected by the system.
 
-It is important that all reads and writes to shared memory are done using the
-\texttt{READ} and \texttt{WRITE} actions. In languages which support raw memory
-manipulations a programmer might forget to use them or be unaware that a certain
-memory location is shared. This causes the transaction to leak, which might put
-the system in an inconsistent state when an abort occurs.
-
-To deal with this problem special stm compilers have been designed, which
-automatically insert \texttt{READ} and \texttt{WRITE} calls in transactions.
-They cannot however ensure that accessing those locations outside of
-transactions is done safely. In addition these compilers are often too
-conservative and also protect memory that is not shared. STM reads and writes
-are always costly, regardless of the implementation. Protecting this additional
-memory makes the program slower.
-
-
-
-The STM protected, mutable memory cell is called \texttt{TVar} (see
-Figure~\ref{fig:tvar}). The \texttt{readTVar} and \texttt{putTVar} functions
-internally use \texttt{READ} and \texttt{WRITE} to protect the memory. Crucially
-the implementation of \texttt{TVar} is hidden from the programmer. The only way
-of interacting with the data is through the defined interface which uses
-\texttt{READ} and \texttt{WRITE}. This way Haskell can use the more efficient
-explicitly annotated STM, without the possibility of accidental unprotected
-access.
-
-In addition to that, the type system also ensures \texttt{TVar}s are only used
-inside transactions. Modification of shared, protected memory from outside a
+The type system further ensures \texttt{TVar}s are only used inside
+transactions. Modification of shared, protected memory from outside a
 transaction is a problem for stm implementations~\cite{research-toy}. Most
 implementations simply do not protect against this. As shown in
 Figure~\ref{fig:tvar} the functions for manipulating \texttt{TVar}s all have the
-\texttt{STM} type. \texttt{STM} is the type of STM transactions. \texttt{STM} is
-an effect type like \texttt{IO}. It can also be composed into larger
-transactions using \texttt{do}. The \texttt{atomically :: STM a -> IO a}
-function is used to execute the transaction, and make its final result available
-to the outside. A sketch of how \texttt{atomically} works can be seen in
-Figure~\ref{fig:atomically}.
-
-\begin{figure}
-  \begin{lstlisting}
-atomically :: STM a -> IO a
-atomically transaction = do
-  START_TRANSACTION
-  result <- runTransaction transaction
-  END_TRANSACTION
-  return result
-  \end{lstlisting}
-  \caption{A rough version of the \texttt{atomically} function}
-  \label{fig:atomically}
-\end{figure}
+\texttt{STM} type which can only be used inside a transaction.
 
 \texttt{TVar}s themselves can be returned from a transaction. For instance by
 doing \texttt{atomically (newTVar 0) :: IO (TVar Int)}. This way \texttt{TVar}s
 can be passed around outside of transactions, but only read or written to in
 another transaction.
+
+Having only manual STM in Haskell unfortunately means that STM cannot easily
+applied to third party libraries. However this is rarely a problem in practice,
+because many libraries in Haskell tend to be designed in terms of pure functions
+which means they do not need to involve STM.

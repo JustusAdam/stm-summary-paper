@@ -2,17 +2,29 @@
 
 \label{sec:library}
 
-In Haskell STM is realized via a library called \texttt{stm}. Whereas the API is
-defined in the library the core of Haskells STM system is implemented in its
-runtime, in C.
+Haskell exposes its STM implementation via a library called
+\texttt{stm}~\cite{composable-transactions}. The underlying STM system is
+implemented in the Haskell runtime and similar to the one described in
+Section~\ref{sec:stm}. Though it has been shown that a it can also be
+implemented in Haskell itself, using lower level concurrency
+primitives~\cite{stm-in-concurrent-haskell,concurrent-haskell}.
+
+The library exposes a high level interface to the
+programmer. The advantage is that it can use the Haskell type system to enforce
+correct use of transactional data and side effect freedom.
+Sections~\ref{sec:side-effects}~and~\ref{sec:explicit-implicit} describe these
+in more detail.
 
 The library is designed around explicit transactional data structures. The
-simplest of these is called \texttt{TVar}. The interface for interacting with a
-tvar can be seen in Figure~\ref{fig:tvar}. It is remarkably similar to the
-\texttt{IORef} from the previous section. The entire library mimics preexisting
-Haskell primitives, such as the transactional lock \texttt{TMVar}, which is
-similar to an \texttt{MVar}. Because the interface is so similar every Haskell
-programmer should have little difficulty using it.
+simplest of these is called \texttt{TVar}, a mutable memory cell that can be
+read or written. The interface for interacting with a \texttt{TVar} can be seen
+in Figure~\ref{fig:tvar}. The interface for \texttt{TVar} is deliberately
+similar to the one for \texttt{IORef} from Section~\ref{sec:haskell}. The entire
+library mimics preexisting, non-transactional Haskell data structures. The
+transactional lock \texttt{TMVar} for instance is similar to an \texttt{MVar}, a
+non-transactional lock. By making names and interfaces similar to
+familiar data structures \texttt{stm} reduces the barrier to entry for Haskell
+programmers already familiar with concurrent Haskell~\cite{concurrent-haskell}.
 
 The second important part of the library is the transaction type \texttt{STM}.
 \texttt{STM} is an effect type, similar to \texttt{IO}. It is used to build up
@@ -21,11 +33,24 @@ combines both primitives, as well as other fragments of transactions together.
 Thus libraries can define only partial transactions which the user can combine
 later with their own logic using \texttt{do}.
 
+\begin{figure}
+  \begin{lstlisting}
+atomically :: STM a -> IO a
+atomically transaction = do {
+  START_TRANSACTION;
+  result <- runTransaction transaction;
+  END_TRANSACTION;
+  return result
+}
+  \end{lstlisting}
+  \caption{A rough version of the \texttt{atomically} function}
+  \label{fig:atomically}
+\end{figure}
+
 To execute the transaction the \texttt{atomically} function is provided, see
 also Figure~\ref{fig:atomically}. It takes a description of a transaction
 (\texttt{STM a}) and executes it. The \texttt{atomically} function both
-initializes the transaction as well as verifies it. See more in
-Section\ref{sec:explicit-implicit}.
+initializes the transaction as well as verifies it.
 
 \begin{figure}
   \begin{lstlisting}
@@ -38,34 +63,41 @@ putTVar :: TVar a -> a -> STM ()
   \label{fig:tvar}
 \end{figure}
 
-The Haskell \texttt{stm} library exports two additional primitives.
-\texttt{retry} and \texttt{orElse}. These are typically not part of STM and were
-first introduced in \cite{composable-transactions}. \texttt{retry} is a way for
-the user to demand the transaction be aborted and attempted again. This function
-allows the programmer to require more complex conditions to hold in the system.
-Take for instance a function which must read two elements from a shared buffer.
-The implementation in Figure~\ref{fig:dequeue-two} uses retry if any of the
+The Haskell \texttt{stm} library exports three additional primitives.
+\texttt{retry}, \texttt{orElse} and \texttt{check}. These were first to appear
+in this
+library~\cite{composable-transactions,transactional-memory-data-invariants} and
+are not part of the standard STM interface. \texttt{retry} is a way for the user
+to demand the transaction be aborted and attempted again. This function allows
+the programmer to require more complex conditions to hold in the system. Take
+for instance a function which must read two elements from a shared buffer. The
+implementation in Figure~\ref{fig:dequeue-two} uses \texttt{retry} if any of the
 buffers are empty. When a \texttt{retry} is called the STM implementation rolls
 back the transaction and then waits for a change to occur on any of the
-locations touched until \texttt{retry} as called. This avoids executing the
-computation again when the conditions have not changed.
+locations touched until \texttt{retry} is called. This avoids executing the
+computation again when the conditions have not changed. The use of a
+\texttt{TMVar} as a transactional lock here is safe, as it is tracked by the STM
+runtime and automatically released should the transaction abort.
 
 \begin{figure}
   \begin{lstlisting}
 dequeue :: TMVar [a] -> STM a
-dequeue v = do
-  l <- takeTMVar v
-  case l of
-    [] -> retry
-    (a:as) -> do
-      putTMVar v as
-      return a
+dequeue v = do {
+  l <- takeTMVar v; -- acquire lock
+  if empty l
+    then retry
+    else do {
+      putTMVar v (tail l); -- release lock
+      return (head l)
+    }
+}
 
 dequeueTwo :: TMVar [a] -> STM (a,a)
-dequeueTwo v = do
-  a1 <- dequeue v
-  a2 <- dequeue v
+dequeueTwo v = do {
+  a1 <- dequeue v;
+  a2 <- dequeue v;
   return (a1, a2)
+}
   \end{lstlisting}
   \caption{Dequeuing a buffer}
   \label{fig:dequeue-two}
@@ -78,3 +110,20 @@ because it waits for change, then \texttt{orElse} is the choice of two blocking
 transactions. By using \texttt{orElse} we can wait on two different conditions
 for either one to come true. The authors of the original paper note the
 similarity to the unix \texttt{select} system call.
+
+Lastly the library introduces the \texttt{check} function which allows the
+programmer to specify an ``expression that should be preserved by every atomic
+update for the remainder of the program’s
+execution''~\cite[abstract]{transactional-memory-data-invariants}. This allows the
+user to programmatically state conditions which must be preserved in the
+transaction. The STM system can then optimise waiting and execution of
+transactions to suite these conditions.
+
+To sum up, Haskell exposes its STM implementation via a library. The interface
+is high level and mimics similar, non-transactional data structures. In addition
+to the ``regular'' STM primitives it introduces thee new functions which add
+blocking, choice and programmatic condition checking to transactions. Neither of
+these three is part of the standard STM interface. They enable users to express
+even more complex computations in a succinct way and delegate the responsibility
+for efficiency to the STM system. Concrete examples can be found in the two
+publications~\cite{composable-transactions,transactional-memory-data-invariants}.

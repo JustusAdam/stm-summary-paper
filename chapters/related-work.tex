@@ -7,31 +7,65 @@ primitives have.
 
 \subsection{HLE}
 
-Hardware lock elision, or HLE is a hardware mechanism that speeds up lock based
-concurrent programs. The idea is rather similar to TM. A lock based
-implementation is executed without acquiring the lock and recording the writes
-in the cache. When the lock would be released a check for conflicts is performed
-and the writes committed. This only works if there are no side effects such as
-IO in the lock protected sections.
+Hardware lock elision~\footnote{In the first occurrence of this idea it was
+  called Speculative Lock Elision~\cite{sle}}, or HLE is a hardware mechanism
+that speeds up lock based concurrent programs~\cite{sle,hle}. The idea is rather
+similar to transactional memory. A lock based implementation is executed
+optimistically without acquiring the lock. When the lock would be released a
+check for conflicts is performed using a cache coherence protocol. ``Two memory
+operations conflict if they concurrently access the same cache line and one of
+them is a write.''~\cite{hle} If no conflict occurs the writes are persisted. If
+a conflict occurs the threads re-execute the section non-speculatively. This
+only works if there are no side effects such as IO in the lock protected
+sections.
 
 The problems are similar to TM, in that it needs hardware capabilities, and that
-it is limited by the size of the cache.
+it is limited by the size of the cache. However unlike HTM, HLE is a runtime
+feature of the processor. No changes to the code need to be performed, making it
+suitable for use with legacy systems and third party libraries as well. This
+also makes it, if not portable, compatible. On systems which do not support HLE
+it automatically falls back to the less efficient, lock based solution.
 
 \subsection{Message passing}
 
 Message passing, and by extension the \emph{actor model} is most up-and-coming
 concurrency model. This is often coupled with lightweight threads that are
 scheduled by a runtime. Threads only interact with private state. Between them
-there are channels through which data can be sent. The first language to use
-this model extensively was Erlang, nowadays the standard library for Go and Rust
-both contain an implementation of message passing.
+there are channels through which data can be sent. While the paradigm itself is
+quire old~\cite{mpi-paradigm,actors} it has only recently found its way into the
+mainstream of programming. The first language to use this model extensively was
+Erlang, a language specifically designed for very reliable, highly distributed
+systems. It is not a widely used language, but neither irrelevant due to its use
+in industry. Nowadays the standard library for Go and Rust both contain an
+implementation of message passing. And it has also found its way onto the Java
+platform, notably with the Akka framework~\cite{akka}.
 
 The advantage of MP is that these principles are easy to understand and they
-scale well. Some implementations require messages to be serializable, an thus
-individual nodes can be moved to other processes or even machines.
+scale well. Some implementations, such as Erlang\cite{erlang}, require messages
+to be serializable, an thus individual nodes can be moved to other processes or
+even machines making them scalable beyond threads.
 
 A common problem of MP is the serialization overhead of messages. This can be
-avoided by sending just pointers when communicating between threads. However
-care must be taken that the access of the sending thread is revoked. Rust has a
-rather elegant solution here where it ownership type system ensures that no two
-threads access the same data concurrently.
+avoided by sending pointers directly when communicating between threads. However
+care must be taken that the access of the sending thread is revoked~\footnote{Go
+  for instance allows you to send pointers through channels. This is efficient,
+  but the recipient can modify the memory pointed to which, since it was sent
+  may be shared. There is no mechanism in the compiler to detect and/or report
+  this.}. Rust has a rather elegant solution here where its ownership type
+system ensures that no two threads access the same data concurrently.
+
+\subsection{Hybrid TM}
+
+While not strictly a ``different'' concurrency primitive it is worth mentioning
+that there are designs for so called hybrid transactional systems. These combine
+HTM and STM. One way of doing this is by using HTM wherever possible and if the
+the hardware capacity is exceeded fall back to a software based
+solution~\cite{htm-with-stm-fallback}.
+
+Alternatively hardware is used to speed up an STM
+system~\cite{hardware-accelerated-stm}. Here a classical STM system is employed
+but the instruction set of the machine is extended with new instructions
+specifically designed to aid the STM implementation. The claim is that this way
+near HTM performance can be achieved while maintaining the flexibility of STM.
+
+None of these are seriously in use yet.

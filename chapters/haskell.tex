@@ -2,22 +2,33 @@
 
 \label{sec:haskell}
 
-In Haskell supports first class functions. Function values are not treated
-specially from data structures. The syntax for type annotations is also the same
-for both. Named values are annotated with the \texttt{::} operator, followed by
-the type, for instance \texttt{i :: Int}. In the case of a function the
-arguments and return type are separated by an arrow \texttt{->}. A function
-taking an integer and a string argument and returning a boolean would thus be
-\texttt{test :: Int -> String -> Bool}.
+Many of the examples throughout this paper use Haskell syntax. Most prominently
+for type annotations. Following therefore is a short introduction to selected
+aspects of the Haskell syntax.
 
-In the Haskell language data is immutable by default. Regular data structures
-cannot be modified, instead new data is allocated. In addition side effects are
-strictly controlled. Functions are either pure or must explicitly declare the
-side effects they perform. Pure functions have the property that for the same
-inputs they always produce the same outputs. They cannot modify any external
-state, perform I/O or read mutable variables. As an example a function
-\texttt{randomInt :: () -> Int} producing a random integer would be impossible
-in Haskell.
+Values are annotated with types using the \texttt{value :: Type} syntax,
+regardless of whether it is a function or other value. Function types are
+expressed with the \texttt{->} which separates both the arguments and the return
+type. The type to the right of the last \texttt{->} is always the return type,
+all other types are arguments. Thus \texttt{f :: Int -> String -> Bool} reads as
+\texttt{bool f(int i, string s)} in C/C++. Perhaps confusing is the omission of
+parameter names in the Haskell type signature. Applying functions to arguments
+in Haskell is done in simple prefix notation, with no parentheses and no commas.
+Thus \texttt{writeFile("filename", content)} would translate to
+\texttt{writeFile "filename" content}.
+
+In the Haskell data is immutable by default. Regular data structures cannot be
+modified, instead new data is allocated. Similarly binding ``variables'' is
+final. The \texttt{let x = 1} syntax declares a new variable \texttt{x}. Though
+``variable'' may be the wrong word here, because there is no way to change this
+value. Instead new data must be created, for instance \texttt{let y = x + 1}.
+
+In addition side effects are strictly controlled. Functions are either pure or
+must explicitly declare the side effects they perform. Pure functions have the
+property that for the same inputs they always produce the same outputs. They
+cannot modify any external state, perform I/O or read mutable variables. As an
+example a function \texttt{randomInt :: () -> Int} producing a random integer
+would be impossible in Haskell.
 
 The return type of a function shows the side effects it performs. For instance
 \texttt{readFile :: FilePath -> IO String} does I/O side effect by opening and
@@ -27,19 +38,21 @@ of \texttt{void}. An example would be \texttt{writeFile :: FilePath -> String ->
   IO ()}. The \texttt{IO} ``wrapper'' type around the string cannot be removed.
 However Haskell provides the \texttt{do} notation to sequence many such
 computations into larger ones. Inside the \texttt{do} block values produced by
-I/O can be manipulated. However the \texttt{IO} type propagates to the return
-type of the computation. As an example see Figure~\ref{fig:simple-do}.
+I/O can be captured and assigned to names with \texttt{<-}. These values can be
+manipulated as usual. However the \texttt{IO} type propagates to the return type
+of the computation. As an example see Figure~\ref{fig:simple-do}.
 
 
 \begin{figure}
   \begin{lstlisting}
 cCompile :: IO ()
-cCompile = do
-  header <- readFile "main.h"
-  code <- readFile "main.c"
-  let object = runCompiler header code
-  writeFile "main.o" object
+cCompile = do {
+  header <- readFile "main.h";
+  code <- readFile "main.c";
+  let object = runCompiler header code;
+  writeFile "main.o" object;
   return ()
+}
   \end{lstlisting}
   \caption{Example for the \texttt{do} notation}
   \label{fig:simple-do}
